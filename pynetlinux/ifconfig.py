@@ -143,31 +143,31 @@ class Interface(object):
         ''' Bring up the bridge interface. Equivalent to ifconfig [iface] up. '''
 
         # Get existing device flags
-        ifreq = struct.pack('16sh', self.name, 0)
+        ifreq = struct.pack('16sh', bytes(self.name,'utf-8'), 0)
         flags = struct.unpack('16sh', fcntl.ioctl(sockfd, SIOCGIFFLAGS, ifreq))[1]
 
         # Set new flags
         flags = flags | IFF_UP
-        ifreq = struct.pack('16sh', self.name, flags)
+        ifreq = struct.pack('16sh', bytes(self.name,'utf-8'), flags)
         fcntl.ioctl(sockfd, SIOCSIFFLAGS, ifreq)
 
     def down(self):
         ''' Bring down the bridge interface. Equivalent to ifconfig [iface] down. '''
 
         # Get existing device flags
-        ifreq = struct.pack('16sh', self.name, 0)
+        ifreq = struct.pack('16sh', bytes(self.name,'utf-8'), 0)
         flags = struct.unpack('16sh', fcntl.ioctl(sockfd, SIOCGIFFLAGS, ifreq))[1]
 
         # Set new flags
         flags = flags & ~IFF_UP
-        ifreq = struct.pack('16sh', self.name, flags)
+        ifreq = struct.pack('16sh', bytes(self.name,'utf-8'), flags)
         fcntl.ioctl(sockfd, SIOCSIFFLAGS, ifreq)
 
     def is_up(self):
         ''' Return True if the interface is up, False otherwise. '''
 
         # Get existing device flags
-        ifreq = struct.pack('16sh', self.name, 0)
+        ifreq = struct.pack('16sh', bytes(self.name,'utf-8'), 0)
         flags = struct.unpack('16sh', fcntl.ioctl(sockfd, SIOCGIFFLAGS, ifreq))[1]
 
         # Set new flags
@@ -178,7 +178,7 @@ class Interface(object):
 
     def get_mac(self):
         ''' Obtain the device's mac address. '''
-        ifreq = struct.pack('16sH14s', self.name, AF_UNIX, b'\x00'*14)
+        ifreq = struct.pack('16sH14s', bytes(self.name,'utf-8'), AF_UNIX, b'\x00'*14)
         res = fcntl.ioctl(sockfd, SIOCGIFHWADDR, ifreq)
         address = struct.unpack('16sH14s', res)[2]
         mac = struct.unpack('6B8x', address)
@@ -190,12 +190,12 @@ class Interface(object):
         ''' Set the device's mac address. Device must be down for this to
             succeed. '''
         macbytes = [int(i, 16) for i in newmac.split(':')]
-        ifreq = struct.pack('16sH6B8x', self.name, AF_UNIX, *macbytes)
+        ifreq = struct.pack('16sH6B8x', bytes(self.name,'utf-8'), AF_UNIX, *macbytes)
         fcntl.ioctl(sockfd, SIOCSIFHWADDR, ifreq)
 
 
     def get_ip(self):
-        ifreq = struct.pack('16sH14s', self.name, AF_INET, b'\x00'*14)
+        ifreq = struct.pack('16sH14s', bytes(self.name,'utf-8'), AF_INET, b'\x00'*14)
         try:
             res = fcntl.ioctl(sockfd, SIOCGIFADDR, ifreq)
         except IOError:
@@ -207,12 +207,12 @@ class Interface(object):
 
     def set_ip(self, newip):
         ipbytes = socket.inet_aton(newip)
-        ifreq = struct.pack('16sH2s4s8s', self.name, AF_INET, b'\x00'*2, ipbytes, b'\x00'*8)
+        ifreq = struct.pack('16sH2s4s8s', bytes(self.name,'utf-8'), AF_INET, b'\x00'*2, ipbytes, b'\x00'*8)
         fcntl.ioctl(sockfd, SIOCSIFADDR, ifreq)
 
 
     def get_netmask(self):
-        ifreq = struct.pack('16sH14s', self.name, AF_INET, b'\x00'*14)
+        ifreq = struct.pack('16sH14s', bytes(self.name,'utf-8'), AF_INET, b'\x00'*14)
         try:
             res = fcntl.ioctl(sockfd, SIOCGIFNETMASK, ifreq)
         except IOError:
@@ -226,13 +226,13 @@ class Interface(object):
     def set_netmask(self, netmask):
         netmask = ctypes.c_uint32(~((2 ** (32 - netmask)) - 1)).value
         nmbytes = socket.htonl(netmask)
-        ifreq = struct.pack('16sH2sI8s', self.name, AF_INET, b'\x00'*2, nmbytes, b'\x00'*8) 
+        ifreq = struct.pack('16sH2si8s', bytes(self.name,'utf-8'), AF_INET, b'\x00'*2, nmbytes, b'\x00'*8)
         fcntl.ioctl(sockfd, SIOCSIFNETMASK, ifreq)
 
 
     def get_index(self):
         ''' Convert an interface name to an index value. '''
-        ifreq = struct.pack('16si', self.name, 0)
+        ifreq = struct.pack('16si', bytes(self.name,'utf-8'), 0)
         res = fcntl.ioctl(sockfd, SIOCGIFINDEX, ifreq)
         return struct.unpack("16si", res)[1]
 
@@ -240,7 +240,7 @@ class Interface(object):
     def get_link_info(self):
         # First get link params
         ecmd = array.array('B', struct.pack('I39s', ETHTOOL_GSET, b'\x00'*39))
-        ifreq = struct.pack('16sP', self.name, ecmd.buffer_info()[0])
+        ifreq = struct.pack('16sP', bytes(self.name,'utf-8'), ecmd.buffer_info()[0])
         try:
             fcntl.ioctl(sockfd, SIOCETHTOOL, ifreq)
             res = ecmd.tostring()
@@ -250,7 +250,7 @@ class Interface(object):
 
         # Then get link up/down state
         ecmd = array.array('B', struct.pack('2I', ETHTOOL_GLINK, 0))
-        ifreq = struct.pack('16sP', self.name, ecmd.buffer_info()[0])
+        ifreq = struct.pack('16sP', bytes(self.name,'utf-8'), ecmd.buffer_info()[0])
         fcntl.ioctl(sockfd, SIOCETHTOOL, ifreq)
         res = ecmd.tostring()
         up = bool(struct.unpack('4xI', res)[0])
@@ -271,7 +271,7 @@ class Interface(object):
     def set_link_mode(self, speed, duplex):
         # First get the existing info
         ecmd = array.array('B', struct.pack('I39s', ETHTOOL_GSET, b'\x00'*39))
-        ifreq = struct.pack('16sP', self.name, ecmd.buffer_info()[0])
+        ifreq = struct.pack('16sP', bytes(self.name,'utf-8'), ecmd.buffer_info()[0])
         fcntl.ioctl(sockfd, SIOCETHTOOL, ifreq)
         # Then modify it to reflect our needs
         ecmd[0:4] = array.array('B', struct.pack('I', ETHTOOL_SSET))
@@ -284,7 +284,7 @@ class Interface(object):
     def set_link_auto(self, ten=True, hundred=True, thousand=True):
         # First get the existing info
         ecmd = array.array('B', struct.pack('I39s', ETHTOOL_GSET, b'\x00'*39))
-        ifreq = struct.pack('16sP', self.name, ecmd.buffer_info()[0])
+        ifreq = struct.pack('16sP', bytes(self.name,'utf-8'), ecmd.buffer_info()[0])
         fcntl.ioctl(sockfd, SIOCETHTOOL, ifreq)
         # Then modify it to reflect our needs
         ecmd[0:4] = array.array('B', struct.pack('I', ETHTOOL_SSET))
