@@ -134,7 +134,7 @@ class Interface(object):
     ''' Class representing a Linux network device. '''
 
     def __init__(self, name):
-        self.name = name
+        self.name = name.encode('utf-8')
 
     def __repr__(self):
         return "<%s %s at 0x%x>" % (self.__class__.__name__, self.name, id(self))
@@ -243,7 +243,7 @@ class Interface(object):
         ifreq = struct.pack('16sP', bytes(self.name,'utf-8'), ecmd.buffer_info()[0])
         try:
             fcntl.ioctl(sockfd, SIOCETHTOOL, ifreq)
-            res = ecmd.tostring()
+            res = ecmd.tobytes()
             speed, duplex, auto = struct.unpack('12xHB3xB24x', res)
         except IOError:
             speed, duplex, auto = 65535, 255, 255
@@ -252,7 +252,7 @@ class Interface(object):
         ecmd = array.array('B', struct.pack('2I', ETHTOOL_GLINK, 0))
         ifreq = struct.pack('16sP', bytes(self.name,'utf-8'), ecmd.buffer_info()[0])
         fcntl.ioctl(sockfd, SIOCETHTOOL, ifreq)
-        res = ecmd.tostring()
+        res = ecmd.tobytes()
         up = bool(struct.unpack('4xI', res)[0])
 
         if speed == 65535:
@@ -297,7 +297,7 @@ class Interface(object):
         if thousand:
             advertise |= ADVERTISED_1000baseT_Half | ADVERTISED_1000baseT_Full
 
-        newmode = struct.unpack('I', ecmd[4:8].tostring())[0] & advertise
+        newmode = struct.unpack('I', ecmd[4:8].tobytes())[0] & advertise
         ecmd[8:12] = array.array('B', struct.pack('I', newmode))
         ecmd[18] = 1
         fcntl.ioctl(sockfd, SIOCETHTOOL, ifreq)
@@ -378,7 +378,7 @@ def iterifs(physical=True):
             "Unexpected amount of data returned from ioctl. "
             "You're probably running on an unexpected architecture")
 
-        res = ifreqs.tostring()
+        res = ifreqs.tobytes()
         for i in range(0, ifreqs_len, SIZE_OF_IFREQ):
             d = res[i:i+16].strip(b'\0')
             interfaces.add(d)
